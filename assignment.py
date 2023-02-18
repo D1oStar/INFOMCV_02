@@ -1,6 +1,7 @@
 import glm
 import random
 import numpy as np
+import CameraConfig
 
 block_size = 1.0
 
