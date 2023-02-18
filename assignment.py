@@ -1,10 +1,11 @@
 import glm
 import random
 import numpy as np
-import CameraConfig
+from CameraConfig import CameraConfig
 
 block_size = 1.0
-cc = CameraConfig.CameraConfig()
+cc = CameraConfig()
+
 
 def generate_grid(width, depth):
     # Generates the floor grid locations
