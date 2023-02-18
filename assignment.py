@@ -4,7 +4,7 @@ import numpy as np
 import CameraConfig
 
 block_size = 1.0
-
+cc = CameraConfig.CameraConfig()
 
 def generate_grid(width, depth):
     # Generates the floor grid locations
