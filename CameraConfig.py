@@ -1,5 +1,4 @@
 import random
-
 import cv2 as cv
 import threading
 import numpy as np
@@ -46,7 +45,7 @@ class CameraConfig:
             self.dist['cam%d' % i] = dist
             fs.release()
         print('parameters loaded')
-
+    
     # update the 'cname' file, if no input, update all
     def __update(self, cname=[]):
         if not cname:
@@ -62,7 +61,7 @@ class CameraConfig:
     def mtx_dist_compute(self, cname=[]):
         if not cname:
             for i in range(1, 5):
-                self.mtx_compute(cname='cam%d' % i)
+                self.mtx_dist_compute(cname='cam%d' % i)
             return
         criteria1 = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         criteria0 = cv.CALIB_CB_ADAPTIVE_THRESH + cv.CALIB_CB_NORMALIZE_IMAGE + cv.CALIB_CB_FAST_CHECK
@@ -149,4 +148,4 @@ class CameraConfig:
 
 # for testing
 cc = CameraConfig()
-cc.mtx_compute()
+cc.mtx_dist_compute()
