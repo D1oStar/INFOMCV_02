@@ -1,0 +1,32 @@
+<?xml version="1.0"?>
+<opencv_storage>
+<CameraMatrix type_id="opencv-matrix">
+  <rows>3</rows>
+  <cols>3</cols>
+  <dt>d</dt>
+  <data>
+    4.8908785371374034e+02 0. 3.3109082548030386e+02 0.
+    4.9127240690555959e+02 2.3099184798169773e+02 0. 0. 1.</data></CameraMatrix>
+<DistortionCoeffs type_id="opencv-matrix">
+  <rows>1</rows>
+  <cols>5</cols>
+  <dt>d</dt>
+  <data>
+    -3.6270683269603371e-01 1.8599105179218986e-01
+    1.5422223555049448e-05 -3.8993286758392420e-05
+    -6.2182259928727897e-02</data></DistortionCoeffs>
+<RMatrix type_id="opencv-matrix">
+  <rows>3</rows>
+  <cols>1</cols>
+  <dt>d</dt>
+  <data>
+    -1.6383611114479681e+00 3.8042529013598454e-02
+    7.5841399470133594e-03</data></RMatrix>
+<TMatrix type_id="opencv-matrix">
+  <rows>3</rows>
+  <cols>1</cols>
+  <dt>d</dt>
+  <data>
+    -2.3430185865327942e+00 1.2779125653484993e+01
+    3.1429424431946170e+01</data></TMatrix>
+</opencv_storage>
