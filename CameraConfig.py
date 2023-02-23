@@ -9,6 +9,40 @@ boardpath = 'data/checkerboard.xml'
 videopath = 'data/%s/%s.avi'
 samplesize = 30
 
+click = 0
+manual_position = np.zeros((4, 2), np.float32)
+axis = np.float32([[3,0,0], [0,3,0], [0,0,-3]]).reshape(-1,3)
+
+#mouse click event
+def click_event(event, x, y, flags, params):
+    global click
+    global manual_position
+    if event == cv.EVENT_LBUTTONDOWN:
+        if click < 4:
+            manual_position[click] = (x, y)
+            #print(manual_position)
+            #cv.circle(img, (x, y), 6, (0, 0, 255), -1)
+            #cv.imshow('img', img)
+            click += 1
+
+def draw(img, corners, imgpts):
+
+    corner = tuple(corners[0].ravel())
+
+    #imgpoints    
+    imgpts0 = tuple(imgpts[0].ravel()) 
+    imgpts1 = tuple(imgpts[1].ravel()) 
+    imgpts2 = tuple(imgpts[2].ravel())
+
+    #y axis
+    img = cv.line(img, (int(corner[0]),int(corner[1])) , (int(imgpts0[0]), int(imgpts0[1])),(255, 0, 0), 3)
+    #x axis
+    img = cv.line(img, (int(corner[0]),int(corner[1])) , (int(imgpts1[0]), int(imgpts1[1])),(0, 255, 0), 3)
+    #z axis
+    img = cv.line(img, (int(corner[0]),int(corner[1])) , (int(imgpts2[0]), int(imgpts2[1])),(0, 0, 255), 3)
+
+    return img
+
 
 class CameraConfig:
     _instance_lock = threading.Lock()
@@ -58,6 +92,33 @@ class CameraConfig:
         fs.write("DistortionCoeffs", np.array(self.dist[cname]))
         fs.release()
 
+    def save_xml(self, cname=[]):
+        if not cname:
+            for i in range(1, 5):
+                self.save_xml('cam%d' % i)
+            return
+        fs = cv.FileStorage('data/%s/config.xml' % cname, cv.FILE_STORAGE_WRITE)
+        fs.write("CameraMatrix", np.matrix(self.mtx[cname]))
+        fs.write("DistortionCoeffs", np.array(self.dist[cname]))
+        fs.write("RMatrix", np.matrix(self._rvecs[cname]))
+        fs.write("TMatrix", np.matrix(self._tvecs[cname]))
+        fs.release()
+    
+    
+    def load_xml(self):
+        for i in range(1, 5):
+            cname = 'cam%d' % i
+            fs = cv.FileStorage('data/%s/config.xml' % cname, cv.FILE_STORAGE_READ)
+            mtx = np.mat(fs.getNode("CameraMatrix").mat())
+            self.mtx[cname] = mtx
+            dist = np.mat(fs.getNode("DistortionCoeffs").mat())
+            self.dist[cname] = dist
+            rvecs = np.mat(fs.getNode("RMatrix").mat())
+            self._rvecs[cname] = rvecs
+            tvecs = np.mat(fs.getNode("TMatrix").mat())
+            self._tvecs[cname] = tvecs
+            fs.release()
+
     def mtx_dist_compute(self, cname=[]):
         if not cname:
             for i in range(1, 5):
@@ -92,7 +153,7 @@ class CameraConfig:
         if not objpoints:
             return
         print('start calibrating')
-
+                
         random.seed()
         while True:
             objpoints2 = []
@@ -115,7 +176,7 @@ class CameraConfig:
 
     def rt_compute(self, cname=[]):
         if not cname:
-            for i in range(1, 5):
+            for i in range(4, 5):
                 self.rt_compute(cname='cam%d' % i)
             return
 
@@ -124,23 +185,53 @@ class CameraConfig:
 
         size = (int(self.cBHeight), int(self.cBWidth))
 
-        objp = np.zeros((size[0] * size[1], 3), np.float32)
-        objp[:, :2] = (self.cBSquareSize * np.mgrid[0:size[0], 0:size[1]]).T.reshape(-1, 2)
+        objp = np.zeros((6*8,3), np.float32)
+        objp[:,:2] = np.mgrid[0:8,0:6].T.reshape(-1,2)
         objpoints = []  # 3d point in real world space
         imgpoints = []  # 2d points in image plane.
 
         cap = cv.VideoCapture(videopath % (cname, 'checkerboard'))
+        #cap = cv.VideoCapture(videopath % (cname, 'intrinsics'))
         ret, img = cap.read()
-        while ret:
-            ret, img = cap.read()
-        cap.release()
+        #while not ret:
+        #    ret, img = cap.read()
+        #cap.release()
 
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
+
+        cv.imshow('img', img)
+        cv.setMouseCallback('img', click_event)
+        cv.waitKey(0)
+        
+        #print(click)        
+        if click == 4:
+            #print(manual_position)
+            dst_pts = np.float32(manual_position)
+            scr_pts = np.float32( [[0,0], [7,0], [7,5], [0,5]])
+            M = cv.getPerspectiveTransform(scr_pts, dst_pts)
+
+            img_pts = np.array([[[j, i]] for i in range(6) for j in range(8)], dtype=np.float32)
+            xxx_pts = self.cBSquareSize * np.array([[[i, j, 0]] for i in range(8) for j in range(6)], dtype=np.float32)
+            obj_pts = cv.perspectiveTransform(img_pts, M)
+            corners = obj_pts
+
+            corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria1)
+
+            retval, self._rvecs[cname], self._tvecs[cname] = \
+                cv.solvePnP(objp, corners2, self.mtx[cname], self.dist[cname])
+            imgpts, jac = cv.projectPoints(axis, self._rvecs[cname], self._tvecs[cname], self.mtx[cname], self.dist[cname])
+            self.save_xml(cname)
+            img = draw(img, corners2, imgpts)
+            cv.imshow('img',img)
+            cv.waitKey(0)
+        '''
         ret, corners = cv.findChessboardCorners(gray, size, None, criteria0)
         if ret:
             corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria1)
             _, self._rvecs[cname], self._tvecs[cname], _ = \
                 cv.solvePnPRansac(objp, corners2, self.mtx[cname], self.dist[cname])
+        '''
+
 
 # TODO: 计算R矩阵、T矩阵，手动标点找棋盘、计算摄像机位置
 # TODO: 背景扣除（超像素&SIFT）
@@ -148,4 +239,5 @@ class CameraConfig:
 
 # for testing
 cc = CameraConfig()
-cc.mtx_dist_compute()
+#cc.mtx_dist_compute()
+cc.rt_compute()
