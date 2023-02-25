@@ -241,19 +241,37 @@ class CameraConfig:
         capbg = cv.VideoCapture(videopath % (cname, 'background'))
         capfg = cv.VideoCapture(videopath % (cname, 'video'))
         ret, bg = capbg.read()
-        while ret:
+        while not ret:
             ret, bg = capbg.read()
         ret, fg = capfg.read()
-        while ret:
+        while not ret:
             ret, fg = capfg.read()
         capbg.release()
         capfg.release()
 
-        bgblur = cv.GaussianBlur(bg, (10, 10), 0.5)
-        fgblur = cv.GaussianBlur(fg, (10, 10), 0.5)
+        bgblur = cv.GaussianBlur(bg, (5, 5), 0)
+        fgblur = cv.GaussianBlur(fg, (5, 5), 0)
 
-        mask = np.zeros(bgblur.shape[:2], dtype=np.uint8)
-        mask[bgblur != fgblur] = 1
+        backSub = cv.createBackgroundSubtractorKNN(detectShadows=True)
+        for i in range(10):
+            backSub.apply(bgblur)
+        mask = backSub.apply(fgblur)
+        mask[mask == 127] = 0
+
+        # using superpixel for dividing background accurately
+        ths = 0.75  # the threshold of picking foreground
+        spp = cv.ximgproc.createSuperpixelLSC(fgblur)
+        spp.iterate(10)
+        label = np.array(spp.getLabels()) + 1
+        mask[mask == 255] = 1
+        mask_t = mask * label
+        for i in range(label.min(), label.max() + 1):
+            if np.mean(mask_t[label == i]) / i < ths:
+                mask[label == i] = 0
+        mask[mask == 1] = 255
+
+        # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, (10, 10), iterations=3)
+
         cv.imshow('mask', mask)
 
         cv.waitKey(0)
@@ -269,5 +287,5 @@ class CameraConfig:
 # for testing
 cc = CameraConfig()
 # cc.mtx_dist_compute()
-cc.rt_compute()
+# cc.rt_compute()
 cc.subtract_background()
