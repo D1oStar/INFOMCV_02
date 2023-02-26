@@ -55,6 +55,7 @@ class CameraConfig:
     cBSquareSize: int
     _rvecs: dict = {}
     _tvecs: dict = {}
+    _cameraposition: dict = {}
 
     def __new__(cls, *args, **kwargs):
         if not hasattr(CameraConfig, "_instance"):
@@ -278,6 +279,21 @@ class CameraConfig:
 
         cv.destroyAllWindows()
 
+    def camera_position(self, cname=[]):
+        if not cname:
+            for i in range(1, 5):
+                self.camera_position(cname='cam%d' % i)
+            return None
+        if cname in self._cameraposition:
+            return self._cameraposition[cname]
+        else:
+            R_mat = np.mat(cv.Rodrigues(self._rvecs[cname])[0])
+            R_mat = R_mat.T
+            cpos = -R_mat * self._tvecs[cname]
+            self._cameraposition[cname] = cpos
+            print(cpos)
+            return cpos
+
 
 # TODO: 计算R矩阵、T矩阵，手动标点找棋盘、计算摄像机位置
 # TODO: 背景扣除（超像素&SIFT）
@@ -288,4 +304,6 @@ class CameraConfig:
 cc = CameraConfig()
 # cc.mtx_dist_compute()
 # cc.rt_compute()
-cc.subtract_background()
+# cc.subtract_background()
+cc.load_xml()
+cc.camera_position()

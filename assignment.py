@@ -32,10 +32,9 @@ def set_voxel_positions(width, height, depth):
 def get_cam_positions():
     # Generates dummy camera locations at the 4 corners of the room
     # TODO: You need to input the estimated locations of the 4 cameras in the world coordinates.
-    return [[-64 * block_size, 64 * block_size, 63 * block_size],
-            [63 * block_size, 64 * block_size, 63 * block_size],
-            [63 * block_size, 64 * block_size, -64 * block_size],
-            [-64 * block_size, 64 * block_size, -64 * block_size]]
+    cc.load_xml()
+    return [cc.camera_position('cam1'), cc.camera_position('cam2'),
+            cc.camera_position('cam3'), cc.camera_position('cam4')]
 
 
 def get_cam_rotation_matrices():
