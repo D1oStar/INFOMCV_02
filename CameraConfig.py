@@ -180,15 +180,12 @@ class CameraConfig:
                 self.rt_compute(cname='cam%d' % i)
             return
 
-        criteria1 = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-        criteria0 = cv.CALIB_CB_ADAPTIVE_THRESH + cv.CALIB_CB_NORMALIZE_IMAGE + cv.CALIB_CB_FAST_CHECK
+        criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
 
         size = (int(self.cBHeight), int(self.cBWidth))
 
-        objp = np.zeros((6 * 8, 3), np.float32)
-        objp[:, :2] = np.mgrid[0:8, 0:6].T.reshape(-1, 2)
-        objpoints = []  # 3d point in real world space
-        imgpoints = []  # 2d points in image plane.
+        objp = np.zeros((size[0] * size[1], 3), np.float32)
+        objp[:, :2] = (self.cBSquareSize * np.mgrid[0:size[0], 0:size[1]]).T.reshape(-1, 2)
 
         cap = cv.VideoCapture(videopath % (cname, 'checkerboard'))
         # cap = cv.VideoCapture(videopath % (cname, 'intrinsics'))
@@ -211,11 +208,10 @@ class CameraConfig:
             M = cv.getPerspectiveTransform(scr_pts, dst_pts)
 
             img_pts = np.array([[[j, i]] for i in range(6) for j in range(8)], dtype=np.float32)
-            xxx_pts = self.cBSquareSize * np.array([[[i, j, 0]] for i in range(8) for j in range(6)], dtype=np.float32)
             obj_pts = cv.perspectiveTransform(img_pts, M)
             corners = obj_pts
 
-            corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria1)
+            corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
             retval, self._rvecs[cname], self._tvecs[cname] = \
                 cv.solvePnP(objp, corners2, self.mtx[cname], self.dist[cname])
@@ -291,7 +287,10 @@ class CameraConfig:
             R_mat = R_mat.T
             cpos = -R_mat * self._tvecs[cname]
             self._cameraposition[cname] = cpos
+            print(self._rvecs[cname])
+            print(self._tvecs[cname])
             print(cpos)
+            print('-----------------------')
             return cpos
 
 
