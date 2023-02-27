@@ -271,9 +271,9 @@ class CameraConfig:
         mask[mask == 1] = 255
 
         # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, (10, 10), iterations=3)
-
+        
         cv.imshow('mask', mask)
-
+        
         cv.waitKey(0)
 
         cv.destroyAllWindows()
@@ -299,6 +299,21 @@ class CameraConfig:
             #print('-----------------------')
             return cposgl
 
+    def roi(self, cname=[]):
+        if not cname:
+            for i in range(1, 5):
+                self.roi(cname='cam%d' % i)
+            return
+
+        capv = cv.VideoCapture(videopath % (cname, 'video'))
+        ret, img = capv.read()
+        while not ret:
+            ret = img.read()
+        capv.release()
+        h,  w = img.shape[:2]
+        _, roi = cv.getOptimalNewCameraMatrix(self.mtx[cname], self.dist[cname], (w,h), 1, (w,h))
+        print(roi)
+        print('-------------')
 
 # TODO: 计算R矩阵、T矩阵，手动标点找棋盘、计算摄像机位置
 # TODO: 背景扣除（超像素&SIFT）
@@ -307,8 +322,9 @@ class CameraConfig:
 
 # for testing
 cc = CameraConfig()
+cc.load_xml()
 # cc.mtx_dist_compute()
 #cc.rt_compute()
-# cc.subtract_background()
-# cc.load_xml()
+#cc.subtract_background()
 # cc.camera_position()
+cc.roi()
