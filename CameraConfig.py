@@ -8,9 +8,8 @@ boardpath = 'data/checkerboard.xml'
 videopath = 'data/%s/%s.avi'
 samplesize = 30
 
-click = 0
 manual_position = np.zeros((4, 2), np.float32)
-axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
+click = 0
 
 
 # mouse click event
@@ -35,11 +34,11 @@ def draw(img, corners, imgpts):
     imgpts2 = tuple(imgpts[2].ravel())
 
     # y axis
-    img = cv.line(img, (int(corner[0]), int(corner[1])), (int(imgpts0[0]), int(imgpts0[1])), (255, 0, 0), 3)
+    img = cv.line(img, (int(corner[0]), int(corner[1])), (int(imgpts0[0]), int(imgpts0[1])), (255, 0, 0), 1)
     # x axis
-    img = cv.line(img, (int(corner[0]), int(corner[1])), (int(imgpts1[0]), int(imgpts1[1])), (0, 255, 0), 3)
+    img = cv.line(img, (int(corner[0]), int(corner[1])), (int(imgpts1[0]), int(imgpts1[1])), (0, 255, 0), 1)
     # z axis
-    img = cv.line(img, (int(corner[0]), int(corner[1])), (int(imgpts2[0]), int(imgpts2[1])), (0, 0, 255), 3)
+    img = cv.line(img, (int(corner[0]), int(corner[1])), (int(imgpts2[0]), int(imgpts2[1])), (0, 0, 255), 1)
 
     return img
 
@@ -179,20 +178,21 @@ class CameraConfig:
             for i in range(4, 5):
                 self.rt_compute(cname='cam%d' % i)
             return
-
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+        axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
+        axis *= self.cBSquareSize
 
         size = (int(self.cBHeight), int(self.cBWidth))
 
         objp = np.zeros((size[0] * size[1], 3), np.float32)
-        objp[:, :2] = (self.cBSquareSize * np.mgrid[0:size[0], 0:size[1]]).T.reshape(-1, 2)
+        objp[:, :2] = (self.cBSquareSize * np.mgrid[0:size[1], 0:size[0]]).T.reshape(-1, 2)
 
         cap = cv.VideoCapture(videopath % (cname, 'checkerboard'))
         # cap = cv.VideoCapture(videopath % (cname, 'intrinsics'))
         ret, img = cap.read()
-        # while not ret:
-        #    ret, img = cap.read()
-        # cap.release()
+        while not ret:
+            ret, img = cap.read()
+        cap.release()
 
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
@@ -205,11 +205,12 @@ class CameraConfig:
             # print(manual_position)
             dst_pts = np.float32(manual_position)
             scr_pts = np.float32([[0, 0], [7, 0], [7, 5], [0, 5]])
+            scr_pts *= self.cBSquareSize
             M = cv.getPerspectiveTransform(scr_pts, dst_pts)
 
             img_pts = np.array([[[j, i]] for i in range(6) for j in range(8)], dtype=np.float32)
-            obj_pts = cv.perspectiveTransform(img_pts, M)
-            corners = obj_pts
+            img_pts *= self.cBSquareSize
+            corners = cv.perspectiveTransform(img_pts, M)
 
             corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
@@ -221,6 +222,7 @@ class CameraConfig:
             img = draw(img, corners2, imgpts)
             cv.imshow('img', img)
             cv.waitKey(0)
+            cv.destroyAllWindows()
         '''
         ret, corners = cv.findChessboardCorners(gray, size, None, criteria0)
         if ret:
@@ -302,7 +304,7 @@ class CameraConfig:
 # for testing
 cc = CameraConfig()
 # cc.mtx_dist_compute()
-# cc.rt_compute()
+cc.rt_compute()
 # cc.subtract_background()
-cc.load_xml()
-cc.camera_position()
+# cc.load_xml()
+# cc.camera_position()
