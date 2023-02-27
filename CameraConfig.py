@@ -8,7 +8,6 @@ boardpath = 'data/checkerboard.xml'
 videopath = 'data/%s/%s.avi'
 samplesize = 30
 
-click = 0
 manual_position = np.zeros((4, 2), np.float32)
 axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
 #axis *= self.cBSquareSize
@@ -179,7 +178,6 @@ class CameraConfig:
             for i in range(4, 5):
                 self.rt_compute(cname='cam%d' % i)
             return
-
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
         axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
         axis *= self.cBSquareSize
@@ -225,6 +223,7 @@ class CameraConfig:
             img = draw(img, corners2, imgpts)
             cv.imshow('img', img)
             cv.waitKey(0)
+            cv.destroyAllWindows()
         '''
         ret, corners = cv.findChessboardCorners(gray, size, None, criteria0)
         if ret:
@@ -311,5 +310,5 @@ cc = CameraConfig()
 # cc.mtx_dist_compute()
 #cc.rt_compute()
 # cc.subtract_background()
-cc.load_xml()
-cc.camera_position()
+# cc.load_xml()
+# cc.camera_position()
