@@ -2,6 +2,7 @@ import cv2 as cv
 import threading
 import numpy as np
 import random
+import glm
 
 campath = 'data/cam%d/intrinsics.xml'
 boardpath = 'data/checkerboard.xml'
@@ -55,6 +56,7 @@ class CameraConfig:
     _rvecs: dict = {}
     _tvecs: dict = {}
     _cameraposition: dict = {}
+    _rotation: dict = {}
 
     def __new__(cls, *args, **kwargs):
         if not hasattr(CameraConfig, "_instance"):
@@ -287,6 +289,9 @@ class CameraConfig:
             return self._cameraposition[cname]
         else:
             R_mat = np.mat(cv.Rodrigues(self._rvecs[cname])[0])
+            
+            print(R_mat)
+            #print(cam_angle)
             R_mat = R_mat.T
             cpos = -R_mat * self._tvecs[cname]/(115)
             
@@ -296,7 +301,7 @@ class CameraConfig:
             cposgl.append(cpos[1]) #y
             self._cameraposition[cname] = cposgl
             #print(cposgl)
-            #print('-----------------------')
+            print('-----------------------')
             return cposgl
 
     def roi(self, cname=[]):
@@ -315,6 +320,29 @@ class CameraConfig:
         print(roi)
         print('-------------')
 
+    def rot(self, cname=[]):
+        if not cname:
+            for i in range(1, 5):
+                self.rot(cname='cam%d' % i)
+            return None
+        if cname in self._rotation:
+            return self._rotation[cname]
+        else:
+            R_mat = np.mat(cv.Rodrigues(self._rvecs[cname])[0])
+            R_mat_gl = R_mat[:, [0, 2, 1]]
+            R_mat_gl[1, :] *= -1
+
+            gl_rot_mat = np.eye(4)
+            gl_rot_mat[:3, :3] = R_mat_gl
+            gl_rot_mat[3, :3] = [0, 0, 0]
+            gl_rot_mat[:3, 3] = [0, 0, 0]
+
+            gl_rot_mat = glm.mat4(*gl_rot_mat.T.ravel())
+            rotation_matrix_y = glm.rotate(glm.mat4(1), glm.radians(-90), glm.vec3(0, 1, 0))
+            cam_rotations = gl_rot_mat*rotation_matrix_y
+
+            return cam_rotations
+    
 # TODO: 计算R矩阵、T矩阵，手动标点找棋盘、计算摄像机位置
 # TODO: 背景扣除（超像素&SIFT）
 # TODO: 通过视频计算坐标（SIFT、RANSAC）
@@ -326,5 +354,5 @@ cc.load_xml()
 # cc.mtx_dist_compute()
 #cc.rt_compute()
 #cc.subtract_background()
-# cc.camera_position()
-cc.roi()
+#cc.camera_position()
+cc.rot()
