@@ -11,7 +11,10 @@ samplesize = 30
 
 manual_position = np.zeros((4, 2), np.float32)
 axis = np.float32([[3, 0, 0], [0, 3, 0], [0, 0, -3]]).reshape(-1, 3)
-#axis *= self.cBSquareSize
+
+
+# axis *= self.cBSquareSize
+
 
 # mouse click event
 def click_event(event, x, y, flags, params):
@@ -53,6 +56,7 @@ class CameraConfig:
     cBWidth: int
     cBHeight: int
     cBSquareSize: int
+    mask: dict = {}
     _rvecs: dict = {}
     _tvecs: dict = {}
     _cameraposition: dict = {}
@@ -188,13 +192,13 @@ class CameraConfig:
 
         objp = np.zeros((size[0] * size[1], 3), np.float32)
         objp[:, :2] = (self.cBSquareSize * np.mgrid[0:size[1], 0:size[0]]).T.reshape(-1, 2)
-        
+
         cap = cv.VideoCapture(videopath % (cname, 'checkerboard'))
         # cap = cv.VideoCapture(videopath % (cname, 'intrinsics'))
         ret, img = cap.read()
-        #while not ret:
-            #ret, img = cap.read()
-        #cap.release()
+        # while not ret:
+        # ret, img = cap.read()
+        # cap.release()
 
         gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
@@ -215,7 +219,7 @@ class CameraConfig:
             obj_pts = cv.perspectiveTransform(img_pts, M)
             corners2 = obj_pts
 
-            #corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+            # corners2 = cv.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
 
             retval, self._rvecs[cname], self._tvecs[cname] = \
                 cv.solvePnP(objp, corners2, self.mtx[cname], self.dist[cname])
@@ -261,7 +265,7 @@ class CameraConfig:
         mask[mask == 127] = 0
 
         # using superpixel for dividing background accurately
-        ths = 0.75  # the threshold of picking foreground
+        ths = 0.7  # the threshold of picking foreground
         spp = cv.ximgproc.createSuperpixelLSC(fgblur)
         spp.iterate(10)
         label = np.array(spp.getLabels()) + 1
@@ -270,15 +274,44 @@ class CameraConfig:
         for i in range(label.min(), label.max() + 1):
             if np.mean(mask_t[label == i]) / i < ths:
                 mask[label == i] = 0
+        kernel = np.ones((5, 5), np.uint8)
         mask[mask == 1] = 255
+        # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+        mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+        mask[mask == 255] = 1
+        self.mask[cname] = mask
 
-        # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, (10, 10), iterations=3)
-        
-        cv.imshow('mask', mask)
-        
-        cv.waitKey(0)
+    def voxel_pos(self, block_size):
+        data = []
+        imgp = []
+        step = 2
+        xrange = range(-20 * step, 30 * step)
+        zrange = range(-30 * step, 30 * step)
+        yrange = range(0 * step, 20 * step)
 
-        cv.destroyAllWindows()
+        objp = np.zeros((len(xrange) * len(yrange) * len(zrange), 3), np.float32)
+        objp[:, :3] = np.mgrid[xrange, yrange, zrange].T.reshape(-1, 3)
+        objp /= step
+
+        testrange = range(1, 2)
+
+        for i in testrange:
+            imgpts, _ = cv.projectPoints(objp * self.cBSquareSize, self._rvecs['cam%d' % i], self._tvecs['cam%d' % i],
+                                         self.mtx['cam%d' % i], self.dist['cam%d' % i])
+            imgp.append(imgpts.astype(int))
+        for i in range(objp.shape[0]):
+            objpt = objp[i]
+            score = 0
+            for j in testrange:
+                imgpts2 = imgp[j - 1][i][0]
+                mask = self.mask['cam%d' % j]
+                h, w = mask.shape[:2]
+                if 0 <= imgpts2[0] < h and 0 <= imgpts2[1] < w:
+                    score += mask[imgpts2[0]][imgpts2[1]]
+            if score > 0:
+                data.append([objpt[0], objpt[1], objpt[2]])
+        print(data)
+        return data
 
     def camera_position(self, cname=[]):
         if not cname:
@@ -289,19 +322,19 @@ class CameraConfig:
             return self._cameraposition[cname]
         else:
             R_mat = np.mat(cv.Rodrigues(self._rvecs[cname])[0])
-            
-            print(R_mat)
-            #print(cam_angle)
+
+            # print(R_mat)
+            # print(cam_angle)
             R_mat = R_mat.T
-            cpos = -R_mat * self._tvecs[cname]/(115)
-            
+            cpos = -R_mat * self._tvecs[cname] / self.cBSquareSize
+
             cposgl = []
-            cposgl.append(cpos[0]) #x
-            cposgl.append(-cpos[2]) #z
-            cposgl.append(cpos[1]) #y
+            cposgl.append(cpos[0])  # x
+            cposgl.append(-cpos[2])  # z
+            cposgl.append(cpos[1])  # y
             self._cameraposition[cname] = cposgl
-            #print(cposgl)
-            print('-----------------------')
+            # print(cposgl)
+            # print('-----------------------')
             return cposgl
 
     def roi(self, cname=[]):
@@ -315,10 +348,10 @@ class CameraConfig:
         while not ret:
             ret = img.read()
         capv.release()
-        h,  w = img.shape[:2]
-        _, roi = cv.getOptimalNewCameraMatrix(self.mtx[cname], self.dist[cname], (w,h), 1, (w,h))
-        print(roi)
-        print('-------------')
+        h, w = img.shape[:2]
+        _, roi = cv.getOptimalNewCameraMatrix(self.mtx[cname], self.dist[cname], (w, h), 1, (w, h))
+        # print(roi)
+        # print('-------------')
 
     def rot(self, cname=[]):
         if not cname:
@@ -339,20 +372,16 @@ class CameraConfig:
 
             gl_rot_mat = glm.mat4(*gl_rot_mat.T.ravel())
             rotation_matrix_y = glm.rotate(glm.mat4(1), glm.radians(-90), glm.vec3(0, 1, 0))
-            cam_rotations = gl_rot_mat*rotation_matrix_y
+            cam_rotations = gl_rot_mat * rotation_matrix_y
 
             return cam_rotations
-    
-# TODO: 计算R矩阵、T矩阵，手动标点找棋盘、计算摄像机位置
-# TODO: 背景扣除（超像素&SIFT）
-# TODO: 通过视频计算坐标（SIFT、RANSAC）
 
 
 # for testing
 cc = CameraConfig()
 cc.load_xml()
 # cc.mtx_dist_compute()
-#cc.rt_compute()
-#cc.subtract_background()
-#cc.camera_position()
-cc.rot()
+# cc.rt_compute()
+cc.subtract_background()
+# cc.camera_position()
+# data = cc.voxel_pos(1.0)

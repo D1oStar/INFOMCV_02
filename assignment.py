@@ -3,7 +3,7 @@ import random
 import numpy as np
 from CameraConfig import CameraConfig
 
-block_size = 1.0
+block_size = 1
 cc = CameraConfig()
 
 
@@ -13,20 +13,16 @@ def generate_grid(width, depth):
     data = []
     for x in range(width):
         for z in range(depth):
-            data.append([x*block_size - width/2, -block_size, z*block_size - depth/2])
+            data.append([x * block_size - width / 2, -block_size, z * block_size - depth / 2])
     return data
 
 
 def set_voxel_positions(width, height, depth):
     # Generates random voxel locations
     # TODO: You need to calculate proper voxel arrays instead of random ones.
-    data = []
-    for x in range(width):
-        for y in range(height):
-            for z in range(depth):
-                if random.randint(0, 1000) < 5:
-                    data.append([x*block_size - width/2, y*block_size, z*block_size - depth/2])
+    data = cc.voxel_pos(block_size=block_size)
     return data
+
 
 def get_cam_positions():
     # Generates dummy camera locations at the 4 corners of the room
@@ -40,5 +36,4 @@ def get_cam_rotation_matrices():
     # Generates dummy camera rotation matrices, looking down 45 degrees towards the center of the room
     # TODO: You need to input the estimated camera rotation matrices (4x4) of the 4 cameras in the world coordinates.
     cc.load_xml()
-    return [cc.rot('cam1'), cc.rot('cam2'), cc.rot('cam3'),cc.rot('cam4')]
-
+    return [cc.rot('cam1'), cc.rot('cam2'), cc.rot('cam3'), cc.rot('cam4')]
