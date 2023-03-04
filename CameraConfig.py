@@ -181,7 +181,7 @@ class CameraConfig:
 
     def rt_compute(self, cname=[]):
         if not cname:
-            for i in range(4, 5):
+            for i in range(1, 5):
                 self.rt_compute(cname='cam%d' % i)
             return
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -278,24 +278,29 @@ class CameraConfig:
         mask[mask == 1] = 255
         # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
         mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+
+        cv.imshow('mask', mask)
+        cv.waitKey(0)
+        cv.destroyAllWindows()
+
         mask[mask == 255] = 1
         self.mask[cname] = mask
 
     def voxel_pos(self, block_size):
         data = []
         imgp = []
-        step = 2
-        xrange = range(-20 * step, 30 * step)
-        zrange = range(-30 * step, 30 * step)
-        yrange = range(0 * step, 20 * step)
+        step = 5
+        xrange = range(-15 * step, 15 * step)
+        yrange = range(-15 * step, 15 * step)
+        zrange = range(0 * step, 20 * step)
 
         objp = np.zeros((len(xrange) * len(yrange) * len(zrange), 3), np.float32)
         objp[:, :3] = np.mgrid[xrange, yrange, zrange].T.reshape(-1, 3)
         objp /= step
 
-        testrange = range(1, 2)
+        testrange = range(1, 5)
 
-        for i in testrange:
+        for i in range(1, 5):
             imgpts, _ = cv.projectPoints(objp * self.cBSquareSize, self._rvecs['cam%d' % i], self._tvecs['cam%d' % i],
                                          self.mtx['cam%d' % i], self.dist['cam%d' % i])
             imgp.append(imgpts.astype(int))
@@ -306,10 +311,10 @@ class CameraConfig:
                 imgpts2 = imgp[j - 1][i][0]
                 mask = self.mask['cam%d' % j]
                 h, w = mask.shape[:2]
-                if 0 <= imgpts2[0] < h and 0 <= imgpts2[1] < w:
-                    score += mask[imgpts2[0]][imgpts2[1]]
-            if score > 0:
-                data.append([objpt[0], objpt[1], objpt[2]])
+                if 0 <= imgpts2[0] < w and 0 <= imgpts2[1] < h:
+                    score += mask[imgpts2[1]][imgpts2[0]]
+            if score > 1:
+                data.append([objpt[0], objpt[2], -objpt[1]])
         print(data)
         return data
 
