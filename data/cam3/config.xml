@@ -15,18 +15,27 @@
     -3.5987381966584103e-01 1.6992600365591073e-01
     1.1567004253163868e-03 -8.2308278486745905e-04
     -4.2893318793362147e-02</data></DistortionCoeffs>
-<RMatrix type_id="opencv-matrix">
+<RVector type_id="opencv-matrix">
   <rows>3</rows>
   <cols>1</cols>
   <dt>d</dt>
   <data>
     -1.2628638253133315e+00 1.0126829988689221e+00
-    1.0428189127899627e+00</data></RMatrix>
-<TMatrix type_id="opencv-matrix">
+    1.0428189127899627e+00</data></RVector>
+<RMatrix type_id="opencv-matrix">
+  <rows>3</rows>
+  <cols>3</cols>
+  <dt>d</dt>
+  <data>
+    2.3216154159585178e-01 -9.7256763196982110e-01
+    1.4602049460679167e-02 4.3107462668187491e-02 2.5285334602172471e-02
+    9.9875041853126001e-01 -9.7172154718630610e-01
+    -2.3124197953371428e-01 4.7795205148433828e-02</data></RMatrix>
+<TVector type_id="opencv-matrix">
   <rows>3</rows>
   <cols>1</cols>
   <dt>d</dt>
   <data>
     -3.6816835174597873e+02 1.1885566770090772e+03
-    3.3886708169034578e+03</data></TMatrix>
+    3.3886708169034578e+03</data></TVector>
 </opencv_storage>

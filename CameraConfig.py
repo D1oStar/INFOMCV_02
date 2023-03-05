@@ -107,8 +107,9 @@ class CameraConfig:
         fs = cv.FileStorage('data/%s/config.xml' % cname, cv.FILE_STORAGE_WRITE)
         fs.write("CameraMatrix", np.matrix(self.mtx[cname]))
         fs.write("DistortionCoeffs", np.array(self.dist[cname]))
-        fs.write("RMatrix", np.matrix(self._rvecs[cname]))
-        fs.write("TMatrix", np.matrix(self._tvecs[cname]))
+        fs.write("RVector", np.matrix(self._rvecs[cname]))
+        fs.write("RMatrix", np.matrix(cv.Rodrigues(self._rvecs[cname])[0]))
+        fs.write("TVector", np.matrix(self._tvecs[cname]))
         fs.release()
 
     def load_xml(self):
@@ -119,9 +120,9 @@ class CameraConfig:
             self.mtx[cname] = mtx
             dist = np.mat(fs.getNode("DistortionCoeffs").mat())
             self.dist[cname] = dist
-            rvecs = np.mat(fs.getNode("RMatrix").mat())
+            rvecs = np.mat(fs.getNode("RVector").mat())
             self._rvecs[cname] = rvecs
-            tvecs = np.mat(fs.getNode("TMatrix").mat())
+            tvecs = np.mat(fs.getNode("TVector").mat())
             self._tvecs[cname] = tvecs
             fs.release()
 
@@ -435,8 +436,9 @@ class CameraConfig:
 # for testing
 cc = CameraConfig()
 cc.load_xml()
+cc.save_xml()
 # cc.mtx_dist_compute()
 # cc.rt_compute()
-cc.subtract_background()
+# cc.subtract_background()
 # cc.camera_position()
 # data = cc.voxel_pos(1.0)
