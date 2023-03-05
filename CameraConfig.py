@@ -356,7 +356,7 @@ class CameraConfig:
                 h, w = mask.shape[:2]
                 if 0 <= imgpts2[0] < w and 0 <= imgpts2[1] < h:
                     score += mask[imgpts2[1]][imgpts2[0]]
-            if score > 2:
+            if score > 3:
                 data.append([-objpt[0]*step, -objpt[2]*step, objpt[1]*step])
 
         return data
