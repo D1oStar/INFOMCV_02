@@ -20,7 +20,7 @@ def generate_grid(width, depth):
 def set_voxel_positions(width, height, depth):
     # Generates random voxel locations
     # TODO: You need to calculate proper voxel arrays instead of random ones.
-    data = cc.voxel_pos(block_size=block_size)
+    data = cc.voxel_pos_mp(block_size=block_size)
     return data
 
 
