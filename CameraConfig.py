@@ -3,6 +3,7 @@ import threading
 import numpy as np
 import random
 import glm
+import multiprocessing
 
 campath = 'data/cam%d/intrinsics.xml'
 boardpath = 'data/checkerboard.xml'
@@ -286,6 +287,7 @@ class CameraConfig:
         mask[mask == 255] = 1
         self.mask[cname] = mask
 
+    '''
     def voxel_pos(self, block_size):
         data = []
         imgp = []
@@ -299,10 +301,6 @@ class CameraConfig:
         objp /= step
 
         testrange = range(1, 5)
-        # testrange = range(1, 2)
-        # testrange = range(2, 3)
-        # testrange = range(3, 4)
-        # testrange = range(4, 5)
 
         for i in range(1, 5):
             imgpts, _ = cv.projectPoints(objp * self.cBSquareSize, self._rvecs['cam%d' % i], self._tvecs['cam%d' % i],
@@ -319,9 +317,50 @@ class CameraConfig:
                     score += mask[imgpts2[1]][imgpts2[0]]
             if score > 2:
                 data.append([-objpt[0]*step, -objpt[2]*step, objpt[1]*step])
-        print(data)
+        
         return data
+    '''
+    def project_points(self, objp, cam_idx):
+        return cv.projectPoints(objp * self.cBSquareSize, self._rvecs['cam%d' % cam_idx], self._tvecs['cam%d' % cam_idx],
+                                self.mtx['cam%d' % cam_idx], self.dist['cam%d' % cam_idx])[0]
+    
+    def voxel_pos_mp(self, block_size):
+        data = []
+        imgp = []
+        step = 5
+        xrange = range(-15 * step, 15 * step)
+        yrange = range(-15 * step, 15 * step)
+        zrange = range(-15 * step, 15 * step)
 
+        objp = np.zeros((len(xrange) * len(yrange) * len(zrange), 3), np.float32)
+        objp[:, :3] = np.mgrid[xrange, yrange, zrange].T.reshape(-1, 3)
+        objp /= step
+
+        testrange = range(1, 5)
+
+        pool = multiprocessing.Pool()
+        results = []
+        for i in range(1, 5):
+            results.append(pool.apply_async(self.project_points, args=(objp, i)))
+
+        for res in results:
+            imgpts = res.get()
+            imgp.append(imgpts.astype(int))
+
+        for i in range(objp.shape[0]):
+            objpt = objp[i]
+            score = 0
+            for j in testrange:
+                imgpts2 = imgp[j - 1][i][0]
+                mask = self.mask['cam%d' % j]
+                h, w = mask.shape[:2]
+                if 0 <= imgpts2[0] < w and 0 <= imgpts2[1] < h:
+                    score += mask[imgpts2[1]][imgpts2[0]]
+            if score > 2:
+                data.append([-objpt[0]*step, -objpt[2]*step, objpt[1]*step])
+
+        return data
+    
     def camera_position(self, cname=[]):
         if not cname:
             for i in range(1, 5):
