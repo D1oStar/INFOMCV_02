@@ -267,7 +267,7 @@ class CameraConfig:
         mask = backSub.apply(fg)
         mask[mask == 127] = 0
 
-        mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+        # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
         # mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
         # using superpixel for dividing background accurately
@@ -278,17 +278,14 @@ class CameraConfig:
         mask[mask == 255] = 1
         mask_t = mask * label
         for i in range(label.min(), label.max() + 1):
-            if np.mean(mask_t[label == i]) / i < ths:
-                mask[label == i] = 0
-            else:
-                mask[label == 1] = 1
-
+            mask[label == i] = np.mean(mask_t[label == i]) / i
+        ret, mask = cv.threshold(mask, 0, 255, cv.THRESH_BINARY + cv.THRESH_OTSU)
         mask[mask == 1] = 255
         # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
-        mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+        # mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
         # cv.imshow('mask', mask)
-        cv.imwrite(('%s_mask.jpg' % cname), mask)
+        # cv.imwrite(('%s_mask.jpg' % cname), mask)
         # cv.waitKey(0)
         # cv.destroyAllWindows()
 
@@ -328,10 +325,12 @@ class CameraConfig:
         
         return data
     '''
+
     def project_points(self, objp, cam_idx):
-        return cv.projectPoints(objp * self.cBSquareSize, self._rvecs['cam%d' % cam_idx], self._tvecs['cam%d' % cam_idx],
-                                self.mtx['cam%d' % cam_idx], self.dist['cam%d' % cam_idx])[0]
-    
+        return \
+            cv.projectPoints(objp * self.cBSquareSize, self._rvecs['cam%d' % cam_idx], self._tvecs['cam%d' % cam_idx],
+                             self.mtx['cam%d' % cam_idx], self.dist['cam%d' % cam_idx])[0]
+
     def voxel_pos_mp(self, block_size):
         data = []
         imgp = []
@@ -368,7 +367,7 @@ class CameraConfig:
                 data.append([-objpt[0], -objpt[2], objpt[1]])
 
         return data
-    
+
     def camera_position(self, cname=[]):
         if not cname:
             for i in range(1, 5):
@@ -436,9 +435,9 @@ class CameraConfig:
 # for testing
 cc = CameraConfig()
 cc.load_xml()
-cc.save_xml()
+# cc.save_xml()
 # cc.mtx_dist_compute()
 # cc.rt_compute()
-# cc.subtract_background()
+cc.subtract_background()
 # cc.camera_position()
 # data = cc.voxel_pos(1.0)
