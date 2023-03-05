@@ -279,9 +279,9 @@ class CameraConfig:
         # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
         mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
-        cv.imshow('mask', mask)
-        cv.waitKey(0)
-        cv.destroyAllWindows()
+        # cv.imshow('mask', mask)
+        # cv.waitKey(0)
+        # cv.destroyAllWindows()
 
         mask[mask == 255] = 1
         self.mask[cname] = mask
@@ -292,13 +292,17 @@ class CameraConfig:
         step = 5
         xrange = range(-15 * step, 15 * step)
         yrange = range(-15 * step, 15 * step)
-        zrange = range(0 * step, 20 * step)
+        zrange = range(-15 * step, 15 * step)
 
         objp = np.zeros((len(xrange) * len(yrange) * len(zrange), 3), np.float32)
         objp[:, :3] = np.mgrid[xrange, yrange, zrange].T.reshape(-1, 3)
         objp /= step
 
         testrange = range(1, 5)
+        # testrange = range(1, 2)
+        # testrange = range(2, 3)
+        # testrange = range(3, 4)
+        # testrange = range(4, 5)
 
         for i in range(1, 5):
             imgpts, _ = cv.projectPoints(objp * self.cBSquareSize, self._rvecs['cam%d' % i], self._tvecs['cam%d' % i],
@@ -313,8 +317,8 @@ class CameraConfig:
                 h, w = mask.shape[:2]
                 if 0 <= imgpts2[0] < w and 0 <= imgpts2[1] < h:
                     score += mask[imgpts2[1]][imgpts2[0]]
-            if score > 1:
-                data.append([objpt[0], objpt[2], -objpt[1]])
+            if score > 2:
+                data.append([-objpt[0]*step, -objpt[2]*step, objpt[1]*step])
         print(data)
         return data
 
