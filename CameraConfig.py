@@ -275,7 +275,7 @@ class CameraConfig:
         for i in range(label.min(), label.max() + 1):
             if np.mean(mask_t[label == i]) / i < ths:
                 mask[label == i] = 0
-        kernel = np.ones((5, 5), np.uint8)
+        kernel = np.ones((12, 12), np.uint8)
         mask[mask == 1] = 255
         # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
         mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
@@ -315,7 +315,7 @@ class CameraConfig:
                 h, w = mask.shape[:2]
                 if 0 <= imgpts2[0] < w and 0 <= imgpts2[1] < h:
                     score += mask[imgpts2[1]][imgpts2[0]]
-            if score > 2:
+            if score > 3:
                 data.append([-objpt[0]*step, -objpt[2]*step, objpt[1]*step])
         
         return data
