@@ -256,18 +256,22 @@ class CameraConfig:
         capbg.release()
         capfg.release()
 
-        bgblur = cv.GaussianBlur(bg, (5, 5), 0)
-        fgblur = cv.GaussianBlur(fg, (5, 5), 0)
+        # bg = cv.GaussianBlur(bg, (3, 3), 0)
+        # fg = cv.GaussianBlur(fg, (3, 3), 0)
+        kernel = np.ones((5, 5), np.uint8)
 
-        backSub = cv.createBackgroundSubtractorKNN(detectShadows=True)
+        backSub = cv.createBackgroundSubtractorMOG2(detectShadows=True)
         for i in range(10):
-            backSub.apply(bgblur)
-        mask = backSub.apply(fgblur)
+            backSub.apply(bg)
+        mask = backSub.apply(fg)
         mask[mask == 127] = 0
 
+        mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+        # mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+
         # using superpixel for dividing background accurately
-        ths = 0.7  # the threshold of picking foreground
-        spp = cv.ximgproc.createSuperpixelLSC(fgblur)
+        ths = 0.4  # the threshold of picking superpixels as foreground
+        spp = cv.ximgproc.createSuperpixelLSC(fg)
         spp.iterate(10)
         label = np.array(spp.getLabels()) + 1
         mask[mask == 255] = 1
@@ -275,12 +279,15 @@ class CameraConfig:
         for i in range(label.min(), label.max() + 1):
             if np.mean(mask_t[label == i]) / i < ths:
                 mask[label == i] = 0
-        kernel = np.ones((12, 12), np.uint8)
+            else:
+                mask[label == 1] = 1
+
         mask[mask == 1] = 255
         # mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
         mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
 
         # cv.imshow('mask', mask)
+        cv.imwrite(('%s_mask.jpg' % cname), mask)
         # cv.waitKey(0)
         # cv.destroyAllWindows()
 
@@ -357,7 +364,7 @@ class CameraConfig:
                 if 0 <= imgpts2[0] < w and 0 <= imgpts2[1] < h:
                     score += mask[imgpts2[1]][imgpts2[0]]
             if score > 3:
-                data.append([-objpt[0]*step, -objpt[2]*step, objpt[1]*step])
+                data.append([-objpt[0], -objpt[2], objpt[1]])
 
         return data
     
